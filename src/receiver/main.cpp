@@ -40,6 +40,7 @@ void onFrame(const uint8_t* data, const size_t len) {
   g_latest = r;
   g_last_rx_ms = millis();
   g_fresh = true;
+
 }
 
 void applyButton(uint8_t buttons, uint8_t mask, uint8_t hid_button) {
@@ -53,13 +54,8 @@ void applyButton(uint8_t buttons, uint8_t mask, uint8_t hid_button) {
 }
 }  // namespace
 
-void setLed(bool on) {
-  neopixelWrite(LED_BUILTIN, on ? 10 : 0, on ? 10 : 0, 0);
-}
-
 void setup() {
   Serial.begin(115200);
-  setLed(false);
 
   g_link.begin(config::kWifiChannel);
   g_link.onReceive(onFrame);
@@ -79,9 +75,6 @@ void loop() {
     Serial.print("Receiver MAC (put in config.h kReceiverMac): ");
     Serial.println(WiFi.macAddress());
   }
-
-  const bool connected = g_last_rx_ms != 0 && millis() - g_last_rx_ms < 500;
-  setLed(connected);
 
   if (g_fresh) {
     g_fresh = false;

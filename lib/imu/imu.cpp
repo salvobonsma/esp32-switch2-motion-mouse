@@ -41,43 +41,43 @@ std::optional<Imu> createImu(const int sda, const int scl,
                              const std::uint8_t mpu_address) {
   Imu imu{mpu_address};
 
-  if (const bool success{imu.m_wire.begin(sda, scl)}; !success) return {};
+  if (const bool success{imu.m_wire->begin(sda, scl)}; !success) return {};
 
   // Probe: does the device ACK its address?
-  imu.m_wire.beginTransmission(mpu_address);
-  if (imu.m_wire.endTransmission(true) != 0) {
+  imu.m_wire->beginTransmission(mpu_address);
+  if (imu.m_wire->endTransmission(true) != 0) {
     return {};
   }
 
   // https://www.i2cdevlib.com/devices/mpu6050#registers
-  writeRegister(imu.m_wire, imu.m_mpu_address, 0x6B,
+  writeRegister(*imu.m_wire, imu.m_mpu_address, 0x6B,
                 0x00);  // Power management 1
-  writeRegister(imu.m_wire, imu.m_mpu_address, 0x1C,
+  writeRegister(*imu.m_wire, imu.m_mpu_address, 0x1C,
                 0x00);  // Accel config (range)
-  writeRegister(imu.m_wire, imu.m_mpu_address, 0x1B,
+  writeRegister(*imu.m_wire, imu.m_mpu_address, 0x1B,
                 0x00);  // Gyro config (range)
-  writeRegister(imu.m_wire, imu.m_mpu_address, 0x19,
+  writeRegister(*imu.m_wire, imu.m_mpu_address, 0x19,
                 7);  // Sample rate (1khz / 7)
-  writeRegister(imu.m_wire, imu.m_mpu_address, 0x1A,
+  writeRegister(*imu.m_wire, imu.m_mpu_address, 0x1A,
                 0x03);  // Low-pass filter ~44 Hz
 
-  return {imu};
+  return {std::move(imu)};
 }
 
 bool Imu::updateCurrentSample() {
-  if (!prepareRawRead(m_wire, m_mpu_address)) return false;
+  if (!prepareRawRead(*m_wire, m_mpu_address)) return false;
 
   // https://www.i2cdevlib.com/devices/mpu6050#registers
-  m_current_sample.ax = static_cast<float>(read16(m_wire)) / k_linear_factor;
-  m_current_sample.ay = static_cast<float>(read16(m_wire)) / k_linear_factor;
-  m_current_sample.az = static_cast<float>(read16(m_wire)) / k_linear_factor;
-  read16(m_wire);  // Discard temperature
+  m_current_sample.ax = static_cast<float>(read16(*m_wire)) / k_linear_factor;
+  m_current_sample.ay = static_cast<float>(read16(*m_wire)) / k_linear_factor;
+  m_current_sample.az = static_cast<float>(read16(*m_wire)) / k_linear_factor;
+  read16(*m_wire);  // Discard temperature
   m_current_sample.gx =
-      static_cast<float>(read16(m_wire) - m_gyro_bias[0]) / k_angular_factor;
+      static_cast<float>(read16(*m_wire) - m_gyro_bias[0]) / k_angular_factor;
   m_current_sample.gy =
-      static_cast<float>(read16(m_wire) - m_gyro_bias[1]) / k_angular_factor;
+      static_cast<float>(read16(*m_wire) - m_gyro_bias[1]) / k_angular_factor;
   m_current_sample.gz =
-      static_cast<float>(read16(m_wire) - m_gyro_bias[2]) / k_angular_factor;
+      static_cast<float>(read16(*m_wire) - m_gyro_bias[2]) / k_angular_factor;
 
   return true;
 }
@@ -86,11 +86,11 @@ void Imu::calibrateGyroBias(const int maxSamples) {
   int taken{0};
   std::array<int32_t, 3> sum{};
   for (int i{0}; i < maxSamples; ++i) {
-    if (!prepareRawRead(m_wire, m_mpu_address)) continue;
-    for (int j{0}; j < 4; ++j) read16(m_wire);  // Skip accel and temp
-    sum[0] += read16(m_wire);
-    sum[1] += read16(m_wire);
-    sum[2] += read16(m_wire);
+    if (!prepareRawRead(*m_wire, m_mpu_address)) continue;
+    for (int j{0}; j < 4; ++j) read16(*m_wire);  // Skip accel and temp
+    sum[0] += read16(*m_wire);
+    sum[1] += read16(*m_wire);
+    sum[2] += read16(*m_wire);
     ++taken;
     delay(1);
   }

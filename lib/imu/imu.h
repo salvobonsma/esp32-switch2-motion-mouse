@@ -3,6 +3,7 @@
 #include <Wire.h>
 
 #include <array>
+#include <memory>
 #include <optional>
 
 class Imu {
@@ -15,12 +16,13 @@ class Imu {
  private:
   uint8_t m_mpu_address;
 
-  TwoWire m_wire{0};
+  std::unique_ptr<TwoWire> m_wire;
   // Raw sample
   std::array<int32_t, 3> m_gyro_bias{};
   Sample m_current_sample{};
 
-  explicit Imu(const uint8_t mpu_address) : m_mpu_address{mpu_address} {}
+  explicit Imu(const uint8_t mpu_address)
+      : m_mpu_address{mpu_address}, m_wire{std::make_unique<TwoWire>(0)} {}
 
  public:
   bool updateCurrentSample();
