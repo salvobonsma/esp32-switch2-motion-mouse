@@ -29,3 +29,5 @@ class Imu {
 
   friend std::optional<Imu> createImu(int sda, int scl, uint8_t mpu_address);
 };
+
+std::optional<Imu> createImu(int sda, int scl, uint8_t mpu_address);
